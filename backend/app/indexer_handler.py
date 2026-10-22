@@ -82,14 +82,28 @@ def _update_lifecycle(table: Any, envelope: dict[str, Any], detail: dict[str, An
         raise
 
 
+def _required_message_id(record: dict[str, Any]) -> str:
+    """Return the SQS message id or fail the whole invocation for safe retry."""
+    message_id = record.get("messageId")
+    if not isinstance(message_id, str) or not message_id:
+        raise ValueError("SQS record is missing messageId")
+    return message_id
+
+
 def handler(event: dict[str, Any], _context: Any = None) -> dict[str, Any]:
     """SQS-triggered entry point with partial-batch failure reporting."""
+    records = event.get("Records", [])
+    # A partial-batch response cannot identify a failed record without a valid
+    # messageId. Fail before importing dependencies or processing any records so
+    # Lambda/SQS retries the complete invocation instead of losing a message.
+    message_ids = [_required_message_id(record) for record in records]
+
     import boto3
 
     table = boto3.resource("dynamodb").Table(os.environ["CATALOG_TABLE"])
     failures: list[dict[str, str]] = []
 
-    for record in event.get("Records", []):
+    for record, message_id in zip(records, message_ids, strict=True):
         try:
             envelope = json.loads(record["body"])
             detail = envelope.get("detail", envelope)
@@ -101,6 +115,6 @@ def handler(event: dict[str, Any], _context: Any = None) -> dict[str, Any]:
             else:
                 raise ValueError(f"unsupported S3 event: {detail_type}")
         except Exception:  # noqa: BLE001
-            failures.append({"itemIdentifier": record.get("messageId", "")})
+            failures.append({"itemIdentifier": message_id})
 
     return {"batchItemFailures": failures}

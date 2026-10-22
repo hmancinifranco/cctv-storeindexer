@@ -88,7 +88,7 @@ Two tables (separation simplifies IAM and audit isolation; see ADR-005). On-dema
 | Multi-day date range | Bounded parallel per-day queries, merged via opaque cursor |
 | Audit trail for an object | `Audit` PK=`OBJ#id` |
 
-Pagination uses an **opaque base64 cursor** wrapping DynamoDB `LastEvaluatedKey`. No table Scan appears in any path.
+Pagination uses an **opaque base64 cursor** wrapping DynamoDB `LastEvaluatedKey`. Cursor decoding validates Base64, UTF-8, JSON shape and string key values; malformed/tampered input returns `400 INVALID_QUERY` and never silently restarts pagination. Camera-only ranges require full timezone-aware ISO-8601 instants and normalize them to UTC before querying. Date-bound wall-clock ranges are converted from the configured local timezone to UTC. No table Scan appears in any path.
 
 **Scale checkpoint:** the current `DAY#YYYY-MM-DD` partition is acceptable for the bounded pilot, but the full estate may generate tens or hundreds of thousands of small AVI files per day and may upload them in bursts. The pilot SHALL measure peak files/second. Before wider rollout, if a day partition approaches DynamoDB hot-key limits, change the primary key to `DAY#<date>#SHARD#<n>` (deterministic hash/camera shard) and merge bounded shard queries. This decision is based on measured peak event rate, not stored TB alone.
 

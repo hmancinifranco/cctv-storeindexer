@@ -97,7 +97,7 @@
 - Scope: consume SQS, parse, conditional write keyed on stable id + `sequencer`; `INVALID_METADATA` path + metric.
 - **Security:** least-privilege role (SQS consume + Catalog write only).
 - **Validation:** unit + integration: valid→one item; duplicate event→one item; out-of-order→no regression; malformed→`INVALID_METADATA` + metric; poison→DLQ.
-- **Evidence:** `indexer_core.py` (idempotent ConditionExpression `attribute_not_exists(PK) OR #seq < :seq`, PK=INVALID quarantine) + `indexer_handler.py` (ReportBatchItemFailures, InvalidFilename metric, ConditionalCheckFailed=success). SAM `IndexerFunction` built via `BuildMethod: makefile` (no python3.12/Docker dependency; boto3 from runtime). Deployed and validated LIVE: 19 objects re-uploaded → catalog Count = **19** (8 OK + 11 INVALID as expected; `__dup__` file correctly quarantined). 21/21 unit tests green.
+- **Evidence:** `indexer_core.py` provides idempotent conditional writes and invalid-metadata quarantine; `indexer_handler.py` uses partial batch responses with real non-empty SQS message IDs, treats duplicates as success, and fails the complete invocation before processing when a record lacks `messageId`, preventing silent message loss. Tests cover valid/missing/empty IDs in addition to indexing and lifecycle retry behavior. SAM `IndexerFunction` uses a dependency-free Makefile build.
 
 ### T3.4 — S3 lifecycle state machine ✅ DONE — DEPLOYED AND E2E VALIDATED (2026-10-22)
 - **Deps:** T3.1, T3.3, T4.1. **Req/Design:** R2, R3, R5 / §3, §5, §11.
@@ -140,7 +140,7 @@
 - **Deps:** T4.2, T5.2. **Req/Design:** R3, R10 / §5, §6.
 - Scope: `GET /videos` querying Catalog with pagination; typed `INVALID_QUERY`.
 - **Validation:** integration tests for date/camera/range/cursor; invalid range → 400; measure p95 ≤ 2s on representative data.
-- **Evidence:** `backend/app/search_core.py` (validate + no-Scan query; from>to and bad-date and no-criteria all → typed INVALID_QUERY) + `backend/app/search_handler.py` (API GW proxy, opaque cursor, projected fields). `backend/tests/test_search_core.py` — 7 tests. SAM `SearchFunction` (DynamoDBReadPolicy on Catalog only). **Deploy pending;** p95 measured post-deploy.
+- **Evidence:** `backend/app/search_core.py` validates local date/time ranges, timezone-aware camera ISO ranges and UTC normalization without Scan; `catalog_keys.py` strictly validates opaque cursors; `search_handler.py` translates malformed/tampered cursors to typed `400 INVALID_QUERY` before loading AWS dependencies. Tests cover reverse/ambiguous ranges, local-to-UTC conversion, malformed Base64/UTF-8/JSON/cursor shape and handler response. SAM `SearchFunction` remains scoped to DynamoDB read.
 
 ### T5.4 — Download-authorization Lambda ✅ DONE — DEPLOYED (2026-09-24)
 - **Deps:** T4.1, T5.2. **Req/Design:** R4, R8 / §9, §10.

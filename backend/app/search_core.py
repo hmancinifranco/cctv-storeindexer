@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from .catalog_keys import build_camera_query, build_day_query
 
@@ -53,10 +54,29 @@ def _to_utc_range(date: str, from_t: str | None, to_t: str | None) -> tuple[str,
     hi = hi if len(hi) == 8 else f"{hi}:59"
     if lo > hi:
         raise SearchError("INVALID_QUERY", "from must be <= to")
-    # Convert local wall-clock to the UTC instant used in stored SK (UTC-3).
-    lo_utc = f"{date}T{lo}-03:00"
-    hi_utc = f"{date}T{hi}-03:00"
+    # DynamoDB sort keys contain canonical UTC instants, not local offsets.
+    lo_utc = datetime.fromisoformat(f"{date}T{lo}-03:00").astimezone(UTC).isoformat()
+    hi_utc = datetime.fromisoformat(f"{date}T{hi}-03:00").astimezone(UTC).isoformat()
     return lo_utc, hi_utc
+
+
+def _parse_aware_instant(raw: str, label: str) -> datetime:
+    try:
+        instant = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise SearchError("INVALID_QUERY", f"{label} must be an ISO-8601 timestamp") from exc
+    if instant.tzinfo is None or instant.utcoffset() is None:
+        raise SearchError("INVALID_QUERY", f"{label} must include a timezone offset")
+    return instant
+
+
+def _camera_utc_range(from_t: str, to_t: str) -> tuple[str, str]:
+    """Validate camera-only instants and normalize them to canonical UTC."""
+    start = _parse_aware_instant(from_t, "from")
+    end = _parse_aware_instant(to_t, "to")
+    if start > end:
+        raise SearchError("INVALID_QUERY", "from must be <= to")
+    return start.astimezone(UTC).isoformat(), end.astimezone(UTC).isoformat()
 
 
 def _validate_include_deleted(raw: str | None) -> bool:
@@ -80,7 +100,8 @@ def build_search(params: dict[str, str | None]) -> dict:
         # Camera + time range across days uses the GSI with UTC bounds.
         if not (from_t and to_t):
             raise SearchError("INVALID_QUERY", "camera time search needs both from and to")
-        query = build_camera_query(camera_id=camera, from_utc=from_t, to_utc=to_t)
+        from_utc, to_utc = _camera_utc_range(from_t, to_t)
+        query = build_camera_query(camera_id=camera, from_utc=from_utc, to_utc=to_utc)
     elif date:
         if not _DATE_RE.match(date):
             raise SearchError("INVALID_QUERY", "date must be YYYY-MM-DD")

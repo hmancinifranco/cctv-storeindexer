@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 from backend.app.indexer_core import stable_object_id
-from backend.app.indexer_handler import _update_lifecycle
+from backend.app.indexer_handler import _required_message_id, _update_lifecycle, handler
 
 
 class FakeTable:
@@ -61,3 +61,17 @@ def test_missing_catalog_item_is_retried() -> None:
     envelope, detail = _event()
     with pytest.raises(LookupError, match="catalog item not found"):
         _update_lifecycle(table, envelope, detail)
+
+
+def test_required_message_id_accepts_non_empty_value() -> None:
+    assert _required_message_id({"messageId": "message-1"}) == "message-1"
+
+
+def test_missing_message_id_fails_complete_invocation_before_boto3() -> None:
+    with pytest.raises(ValueError, match="missing messageId"):
+        handler({"Records": [{"body": "{}"}]})
+
+
+def test_empty_message_id_fails_complete_invocation_before_boto3() -> None:
+    with pytest.raises(ValueError, match="missing messageId"):
+        handler({"Records": [{"messageId": "", "body": "{}"}]})

@@ -73,7 +73,7 @@ WHEN an object is created in the video bucket, the system SHALL catalog it exact
 WHEN an authenticated Operator submits a search by calendar date, time range, and/or camera, the system SHALL return matching catalog entries with server-side pagination and SHALL NOT perform a DynamoDB table Scan.
 
 - Each result SHALL expose recording date/time (local + UTC), camera, filename, size, storage/restore status, and the available action.
-- WHERE a query is invalid (e.g. `from` > `to`), the system SHALL return a typed validation error, not empty success.
+- WHERE a query is invalid (e.g. `from` > `to`, a camera-only range lacks full timezone-aware ISO timestamps, or a cursor is malformed/tampered), the system SHALL return a typed `INVALID_QUERY` 400, not empty success or an unhandled 500.
 - Acceptance: date-range and camera queries return correct pages via an opaque cursor; no Scan in query paths; invalid range → typed 4xx.
 
 ### R4 — Download authorization and short-lived URL

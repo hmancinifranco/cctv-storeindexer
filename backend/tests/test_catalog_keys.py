@@ -5,6 +5,7 @@ from __future__ import annotations
 import unittest
 
 from backend.app.catalog_keys import (
+    CursorError,
     build_camera_query,
     build_catalog_key,
     build_day_query,
@@ -35,6 +36,26 @@ class CursorTest(unittest.TestCase):
     def test_empty(self) -> None:
         self.assertIsNone(encode_cursor(None))
         self.assertIsNone(decode_cursor(None))
+
+    def test_rejects_malformed_base64(self) -> None:
+        with self.assertRaises(CursorError):
+            decode_cursor("not valid base64!!!")
+
+    def test_rejects_invalid_utf8(self) -> None:
+        with self.assertRaises(CursorError):
+            decode_cursor("_w==")  # b"\\xff"
+
+    def test_rejects_invalid_json(self) -> None:
+        with self.assertRaises(CursorError):
+            decode_cursor("bm90LWpzb24=")  # not-json
+
+    def test_rejects_non_object_json(self) -> None:
+        with self.assertRaises(CursorError):
+            decode_cursor("W10=")  # []
+
+    def test_rejects_non_string_key_values(self) -> None:
+        with self.assertRaises(CursorError):
+            decode_cursor("eyJQSyI6MX0=")  # {"PK": 1}
 
 
 class QueryTest(unittest.TestCase):

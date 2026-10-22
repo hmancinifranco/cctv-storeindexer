@@ -48,12 +48,29 @@ def encode_cursor(last_evaluated_key: dict | None) -> str | None:
     return base64.urlsafe_b64encode(raw.encode()).decode()
 
 
+@dataclass(frozen=True)
+class CursorError(ValueError):
+    message: str = "cursor is invalid"
+
+
 def decode_cursor(cursor: str | None) -> dict | None:
-    """Inverse of encode_cursor; returns None for an empty cursor."""
+    """Decode and validate an opaque DynamoDB cursor.
+
+    A malformed or tampered cursor is a client error, never an instruction to
+    restart pagination and never an unhandled server exception.
+    """
     if not cursor:
         return None
-    raw = base64.urlsafe_b64decode(cursor.encode()).decode()
-    return json.loads(raw)
+    try:
+        raw = base64.b64decode(cursor.encode(), altchars=b"-_", validate=True).decode()
+        decoded = json.loads(raw)
+    except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise CursorError() from exc
+    if not isinstance(decoded, dict) or not decoded:
+        raise CursorError()
+    if not all(isinstance(key, str) and isinstance(value, str) for key, value in decoded.items()):
+        raise CursorError()
+    return decoded
 
 
 def build_day_query(

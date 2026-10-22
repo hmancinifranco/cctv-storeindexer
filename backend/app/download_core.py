@@ -20,11 +20,11 @@ class AuthzError(Exception):
 
 
 def authorize(*, groups: list[str] | None, object_exists: bool) -> None:
-    """Raise AuthzError if the caller may not download the object."""
-    if not object_exists:
-        raise AuthzError("NOT_FOUND", "object not found in catalog")
+    """Raise AuthzError without exposing object existence to unauthorized callers."""
     if not groups or REQUIRED_GROUP not in groups:
         raise AuthzError("FORBIDDEN", f"caller must be in {REQUIRED_GROUP}")
+    if not object_exists:
+        raise AuthzError("NOT_FOUND", "object not found in catalog")
 
 
 def build_audit_item(

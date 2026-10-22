@@ -11,7 +11,7 @@ import os
 from decimal import Decimal
 from typing import Any
 
-from .catalog_keys import decode_cursor, encode_cursor
+from .catalog_keys import CursorError, decode_cursor, encode_cursor
 from .search_core import SearchError, build_search
 
 
@@ -37,17 +37,17 @@ def handler(event: dict[str, Any], _context: Any = None) -> dict:
     if path.endswith("/health"):
         return _response(200, {"status": "ok"})
 
-    import boto3
-
     params = event.get("queryStringParameters") or {}
     try:
         query = build_search(params)
-    except SearchError as err:
-        return _response(400, {"code": err.code, "message": err.message})
+        cursor = decode_cursor(params.get("cursor"))
+    except (SearchError, CursorError) as err:
+        return _response(400, {"code": "INVALID_QUERY", "message": err.message})
 
-    cursor = decode_cursor(params.get("cursor"))
     if cursor:
         query["ExclusiveStartKey"] = cursor
+
+    import boto3
 
     table = boto3.resource("dynamodb").Table(os.environ["CATALOG_TABLE"])
     result = table.query(**query)

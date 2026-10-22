@@ -21,6 +21,11 @@ class AuthorizeTest(unittest.TestCase):
             authorize(groups=["Viewers"], object_exists=True)
         self.assertEqual(ctx.exception.code, "FORBIDDEN")
 
+    def test_wrong_group_cannot_enumerate_missing_object(self) -> None:
+        with self.assertRaises(AuthzError) as ctx:
+            authorize(groups=["Viewers"], object_exists=False)
+        self.assertEqual(ctx.exception.code, "FORBIDDEN")
+
     def test_no_groups(self) -> None:
         with self.assertRaises(AuthzError):
             authorize(groups=None, object_exists=True)

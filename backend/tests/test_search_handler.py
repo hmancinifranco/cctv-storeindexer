@@ -34,5 +34,20 @@ class DecimalJsonTest(unittest.TestCase):
             _json_default(object())
 
 
+class InvalidCursorRouteTest(unittest.TestCase):
+    def test_invalid_cursor_returns_typed_400_before_boto3(self) -> None:
+        response = handler(
+            {
+                "path": "/videos",
+                "queryStringParameters": {
+                    "date": "2026-09-23",
+                    "cursor": "not valid base64!!!",
+                },
+            }
+        )
+        self.assertEqual(response["statusCode"], 400)
+        self.assertEqual(json.loads(response["body"])["code"], "INVALID_QUERY")
+
+
 if __name__ == "__main__":
     unittest.main()

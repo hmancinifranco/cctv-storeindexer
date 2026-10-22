@@ -25,8 +25,8 @@ paths:
       summary: Search the catalog by date, time range, and/or camera
       parameters:
         - { name: date, in: query, schema: { type: string, format: date }, description: "Local day YYYY-MM-DD" }
-        - { name: from, in: query, schema: { type: string }, description: "HH:MM[:SS] (with date) or UTC ISO (with camera)" }
-        - { name: to, in: query, schema: { type: string } }
+        - { name: from, in: query, schema: { type: string }, description: "With date: local HH:MM[:SS]. Camera-only searches: full ISO-8601 timestamp with timezone." }
+        - { name: to, in: query, schema: { type: string }, description: "Same format as from; must not precede it." }
         - { name: camera, in: query, schema: { type: string } }
         - { name: cursor, in: query, schema: { type: string }, description: "Opaque pagination cursor" }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
