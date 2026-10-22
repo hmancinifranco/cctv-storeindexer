@@ -1,0 +1,33 @@
+[project]
+name = "cctv-storeindexer"
+version = "0.1.0"
+description = "Video Archive Prototype — ingest, index, search, and audited download of surveillance recordings on AWS."
+license = "MIT-0"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["backend", "uploader"]
+extend-exclude = ["uploader/synthetic/out", ".aws-sam"]
+
+[tool.ruff.lint]
+# pycodestyle, pyflakes, isort, bugbear, comprehensions, pyupgrade, security (bandit-lite)
+select = ["E", "F", "I", "B", "C4", "UP", "S"]
+# S101 (assert) is fine in tests; handled per-file below.
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101"]
+"backend/tests/**" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_unused_ignores = true
+warn_redundant_casts = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+files = ["backend"]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+addopts = "-ra"

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!-- Mockup Option B — "Galería de tarjetas": filtros en panel lateral + resultados como tarjetas.
+     Estilo Material UI. Estático, solo para revisión de diseño (T6.1). -->
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Archive — Opción B (Tarjetas)</title>
+<style>
+  :root{--primary:#1976d2;--bg:#f4f6f8;--card:#fff;--text:#1a2027;--muted:#6b7785;--border:#e0e4e8;--ok:#2e7d32;--warn:#ed6c02;--danger:#d32f2f}
+  *{box-sizing:border-box} body{margin:0;font-family:Roboto,-apple-system,Segoe UI,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  .appbar{background:var(--primary);color:#fff;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 4px rgba(0,0,0,.15)}
+  .appbar h1{font-size:18px;font-weight:500;margin:0}.user{font-size:13px;opacity:.9}
+  .layout{display:grid;grid-template-columns:260px 1fr;gap:24px;max-width:1200px;margin:24px auto;padding:0 24px}
+  .sidebar{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;height:fit-content;position:sticky;top:24px}
+  .sidebar h2{font-size:13px;text-transform:uppercase;color:var(--muted);letter-spacing:.5px;margin:0 0 16px}
+  .field{display:flex;flex-direction:column;gap:4px;margin-bottom:16px} .field label{font-size:12px;color:var(--muted)}
+  .field input,.field select{padding:9px 12px;border:1px solid var(--border);border-radius:4px;font-size:14px;background:#fff;width:100%}
+  .btn{background:var(--primary);color:#fff;border:none;border-radius:4px;padding:10px;font-size:14px;font-weight:500;cursor:pointer;width:100%}
+  .btn.secondary{background:transparent;color:var(--primary);border:1px solid var(--border);margin-top:8px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+  .vcard{background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;display:flex;flex-direction:column}
+  .thumb{background:#263238;color:#90a4ae;height:120px;display:flex;align-items:center;justify-content:center;font-size:40px}
+  .vcard .body{padding:14px} .vcard .cam{font-size:12px;color:var(--muted)} .vcard .dt{font-size:15px;font-weight:500;margin:2px 0 6px}
+  .vcard .fn{font-size:12px;color:var(--muted);word-break:break-all;margin-bottom:10px}
+  .chip{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500}
+  .chip.ok{background:#e8f5e9;color:var(--ok)}.chip.invalid{background:#fdecea;color:var(--danger)}.chip.archived{background:#fff4e5;color:var(--warn)}
+  .vcard .foot{padding:12px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+  .dl{background:var(--primary);color:#fff;border:none;border-radius:4px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer}
+  .dl.disabled{background:#eceff1;color:var(--muted);cursor:not-allowed}
+  .size{font-size:12px;color:var(--muted)}
+  .section-title{font-size:13px;color:var(--muted);margin:28px 0 8px;text-transform:uppercase;letter-spacing:.5px}
+  .state{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:32px;text-align:center;color:var(--muted);font-size:14px}
+  .banner{border-radius:8px;padding:14px 16px;font-size:14px;margin-bottom:16px}.banner.denied{background:#fff4e5;color:var(--warn)}.banner.error{background:#fdecea;color:var(--danger)}
+</style></head>
+<body>
+  <div class="appbar"><h1>📹 Archivo de Video</h1><span class="user">operador@cliente.example · Operador · <b>Salir</b></span></div>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2>Filtros</h2>
+      <div class="field"><label>Fecha</label><input type="date" value="2026-09-21"></div>
+      <div class="field"><label>Desde</label><input type="time" value="08:00"></div>
+      <div class="field"><label>Hasta</label><input type="time" value="18:00"></div>
+      <div class="field"><label>Cámara</label><select><option>Todas</option><option>CAM01</option><option>CAM02</option></select></div>
+      <button class="btn">Buscar</button><button class="btn secondary">Limpiar</button>
+    </aside>
+    <main>
+      <div class="section-title">3 videos encontrados</div>
+      <div class="grid">
+        <div class="vcard"><div class="thumb">🎬</div><div class="body"><div class="cam">CAM01</div><div class="dt">21/09 08:00:00</div><div class="fn">CAM01_20260921_080000-083000.mp4</div><span class="chip ok">Disponible</span></div><div class="foot"><span class="size">1.2 GB</span><button class="dl">Descargar</button></div></div>
+        <div class="vcard"><div class="thumb">🎬</div><div class="body"><div class="cam">CAM01</div><div class="dt">21/09 09:00:00</div><div class="fn">CAM01_20260921_090000.mp4</div><span class="chip ok">Disponible</span></div><div class="foot"><span class="size">0.9 GB</span><button class="dl">Descargar</button></div></div>
+        <div class="vcard"><div class="thumb">🎬</div><div class="body"><div class="cam">CAM02</div><div class="dt">21/09 14:25:30</div><div class="fn">CAM02_20260921_142530-142959.avi</div><span class="chip ok">Disponible</span></div><div class="foot"><span class="size">1.1 GB</span><button class="dl">Descargar</button></div></div>
+      </div>
+
+      <div class="section-title">Estados de la interfaz (referencia)</div>
+      <div class="banner denied">🔒 Acceso denegado a este video.</div>
+      <div class="banner error">⚠️ Error al buscar. Reintentá.</div>
+      <div class="grid">
+        <div class="vcard"><div class="thumb" style="background:#3e2723;color:#bcaaa4">⏳</div><div class="body"><div class="cam">CAM07</div><div class="dt">22/09 23:55:00</div><div class="fn">CAM07_20260922_235500.mkv</div><span class="chip archived">Restauración pendiente (roadmap)</span></div><div class="foot"><span class="size">2.0 GB</span><button class="dl disabled">No disponible</button></div></div>
+        <div class="vcard"><div class="thumb" style="background:#4a1c1c;color:#ef9a9a">⚠️</div><div class="body"><div class="cam">—</div><div class="dt">Nombre inválido</div><div class="fn">CÁM01_...corrupto.mp4</div><span class="chip invalid">Metadata inválida</span></div><div class="foot"><span class="size">—</span><button class="dl disabled">Revisar</button></div></div>
+      </div>
+      <div style="margin-top:16px" class="state">🔍 No se encontraron videos para esos filtros.</div>
+    </main>
+  </div>
+</body></html>

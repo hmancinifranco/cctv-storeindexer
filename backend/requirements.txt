@@ -1,0 +1,2 @@
+# Lambda runtime already provides boto3/botocore.
+# Add third-party runtime deps here as they become needed.

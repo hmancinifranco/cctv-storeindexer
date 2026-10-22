@@ -1,0 +1,113 @@
+openapi: 3.0.3
+info:
+  title: Video Archive API
+  version: 1.0.0
+  description: >
+    Search and controlled download for the surveillance video catalog.
+    All routes except /health require a Cognito User Pool JWT. Errors are typed
+    JSON objects { code, message }.
+servers:
+  - url: https://{api_id}.execute-api.{region}.amazonaws.com/v1
+    variables:
+      api_id: { default: replaced-at-deploy }
+      region: { default: us-east-1 }
+
+paths:
+  /health:
+    get:
+      summary: Liveness probe (public)
+      security: []
+      responses:
+        "200": { description: OK }
+
+  /videos:
+    get:
+      summary: Search the catalog by date, time range, and/or camera
+      parameters:
+        - { name: date, in: query, schema: { type: string, format: date }, description: "Local day YYYY-MM-DD" }
+        - { name: from, in: query, schema: { type: string }, description: "HH:MM[:SS] (with date) or UTC ISO (with camera)" }
+        - { name: to, in: query, schema: { type: string } }
+        - { name: camera, in: query, schema: { type: string } }
+        - { name: cursor, in: query, schema: { type: string }, description: "Opaque pagination cursor" }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+        - { name: includeDeleted, in: query, schema: { type: boolean, default: false }, description: "Administrative tombstone view; normal searches exclude deleted objects" }
+      responses:
+        "200":
+          description: A page of catalog entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/CatalogEntry" }
+                  cursor: { type: string, nullable: true }
+        "400": { $ref: "#/components/responses/TypedError" }
+        "401": { description: Unauthenticated }
+
+  /videos/{videoId}/download:
+    post:
+      summary: Authorize and issue a short-lived presigned download URL
+      description: >
+        The object is resolved server-side from the catalog by videoId
+        (stableId); the caller does not supply an S3 key.
+      parameters:
+        - { name: videoId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Short-lived URL issued (issuance is audited; URL is not stored)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string }
+                  expiresInSeconds: { type: integer }
+        "403": { $ref: "#/components/responses/TypedError" }
+        "404": { $ref: "#/components/responses/TypedError" }
+        "409":
+          description: Object archived — restore required (roadmap)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+components:
+  schemas:
+    CatalogEntry:
+      type: object
+      properties:
+        objectKey: { type: string }
+        cameraId: { type: string }
+        recordedAtUtc: { type: string }
+        recordedAtLocal: { type: string }
+        sizeBytes: { type: integer }
+        catalogStatus: { type: string, enum: [OK, INVALID_METADATA] }
+        storageClass: { type: string }
+        accessTier: { type: string, nullable: true }
+        lifecycleState: { type: string, enum: [AVAILABLE, ARCHIVED, RESTORE_PENDING, RESTORED, DELETED] }
+        restoreStatus: { type: string, enum: [NOT_REQUIRED, NOT_REQUESTED, PENDING, RESTORED, EXPIRED] }
+        stateChangedAt: { type: string, format: date-time, nullable: true }
+        storageClassChangedAt: { type: string, format: date-time, nullable: true }
+        accessTierChangedAt: { type: string, format: date-time, nullable: true }
+        archivedAt: { type: string, format: date-time, nullable: true }
+        restoreRequestedAt: { type: string, format: date-time, nullable: true }
+        restoredAt: { type: string, format: date-time, nullable: true }
+        restoreExpiresAt: { type: string, format: date-time, nullable: true }
+        restoreExpiredAt: { type: string, format: date-time, nullable: true }
+        deleted: { type: boolean, default: false }
+        deletedAt: { type: string, format: date-time, nullable: true }
+        deletionReason: { type: string, nullable: true, enum: [DELETE_OBJECT, LIFECYCLE_EXPIRATION] }
+        stableId: { type: string }
+    Error:
+      type: object
+      properties:
+        code: { type: string }
+        message: { type: string }
+      required: [code, message]
+  responses:
+    TypedError:
+      description: Typed error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
