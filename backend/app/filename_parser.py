@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 PARSER_VERSION = "v1"
 
@@ -86,13 +86,13 @@ class FilenameParser:
         end_raw = match.groupdict().get("end")
         if end_raw:
             try:
-                end_local = datetime.strptime(
-                    f"{date}{end_raw}", "%Y%m%d%H%M%S"
-                ).replace(tzinfo=self._tz)
+                end_local = datetime.strptime(f"{date}{end_raw}", "%Y%m%d%H%M%S").replace(
+                    tzinfo=self._tz
+                )
                 # A clip may cross midnight: end earlier than start rolls to next day.
                 if end_local < start_local:
                     end_local += timedelta(days=1)
-                end_utc = end_local.astimezone(timezone.utc).isoformat()
+                end_utc = end_local.astimezone(UTC).isoformat()
             except ValueError:
                 return invalid("invalid end time")
 
@@ -102,7 +102,7 @@ class FilenameParser:
             camera_id=match.group("camera"),
             local_day=local_day,
             recorded_at_local=start_local.isoformat(),
-            recorded_at_utc=start_local.astimezone(timezone.utc).isoformat(),
+            recorded_at_utc=start_local.astimezone(UTC).isoformat(),
             ends_at_utc=end_utc,
             extension=ext,
             parser_version=self._version,

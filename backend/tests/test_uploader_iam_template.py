@@ -9,9 +9,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = (REPO_ROOT / "infra" / "template.yaml").read_text()
 PROFILE_SCRIPT = (REPO_ROOT / "uploader" / "iam-user" / "configure-profile.ps1").read_text()
 UPLOAD_SCRIPT = (REPO_ROOT / "uploader" / "iam-user" / "upload-videos.ps1").read_text()
-REGISTER_TASK_SCRIPT = (
-    REPO_ROOT / "uploader" / "iam-user" / "register-task.ps1"
-).read_text()
+REGISTER_TASK_SCRIPT = (REPO_ROOT / "uploader" / "iam-user" / "register-task.ps1").read_text()
 REMOVE_TASK_SCRIPT = (REPO_ROOT / "uploader" / "iam-user" / "remove-task.ps1").read_text()
 
 

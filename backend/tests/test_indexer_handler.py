@@ -5,7 +5,6 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
-
 from backend.app.indexer_core import stable_object_id
 from backend.app.indexer_handler import _update_lifecycle
 
@@ -49,9 +48,7 @@ def test_lifecycle_update_resolves_by_object_index_without_scan() -> None:
     assert table.query_request is not None
     assert table.query_request["IndexName"] == "by-object"
     expected_id = stable_object_id("bucket", detail["object"]["key"], None)
-    assert table.query_request["ExpressionAttributeValues"] == {
-        ":oid": f"OBJ#{expected_id}"
-    }
+    assert table.query_request["ExpressionAttributeValues"] == {":oid": f"OBJ#{expected_id}"}
     assert table.update_request is not None
     assert table.update_request["Key"] == {
         "PK": "DAY#2026-10-22",

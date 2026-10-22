@@ -23,8 +23,8 @@ from __future__ import annotations
 import argparse
 import json
 import re
-from dataclasses import dataclass, asdict
-from datetime import datetime, timedelta, timezone
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 # Local recording timezone per A1: fixed UTC-3, no DST.
@@ -56,10 +56,10 @@ class FixtureEntry:
 
 def _to_utc_iso(date_yyyymmdd: str, time_hhmmss: str) -> str:
     """Convert a local YYYYMMDD/HHMMSS pair to a UTC ISO-8601 string."""
-    local_dt = datetime.strptime(
-        f"{date_yyyymmdd}{time_hhmmss}", "%Y%m%d%H%M%S"
-    ).replace(tzinfo=LOCAL_TZ)
-    return local_dt.astimezone(timezone.utc).isoformat()
+    local_dt = datetime.strptime(f"{date_yyyymmdd}{time_hhmmss}", "%Y%m%d%H%M%S").replace(
+        tzinfo=LOCAL_TZ
+    )
+    return local_dt.astimezone(UTC).isoformat()
 
 
 def _valid_entry(
@@ -67,9 +67,7 @@ def _valid_entry(
 ) -> FixtureEntry:
     """Build an expected-OK entry, deriving UTC from local time (A1)."""
     filename = (
-        f"CAM{camera}_{date}_{start}-{end}.{ext}"
-        if end
-        else f"CAM{camera}_{date}_{start}.{ext}"
+        f"CAM{camera}_{date}_{start}-{end}.{ext}" if end else f"CAM{camera}_{date}_{start}.{ext}"
     )
     return FixtureEntry(
         filename=filename,
@@ -146,13 +144,9 @@ def validate_entry_against_grammar(entry: FixtureEntry) -> bool:
     calendar_ok = False
     if match and match.group("ext").lower() in ALLOWED_EXTENSIONS:
         try:
-            datetime.strptime(
-                f"{match.group('date')}{match.group('start')}", "%Y%m%d%H%M%S"
-            )
+            datetime.strptime(f"{match.group('date')}{match.group('start')}", "%Y%m%d%H%M%S")
             if match.group("end"):
-                datetime.strptime(
-                    f"{match.group('date')}{match.group('end')}", "%Y%m%d%H%M%S"
-                )
+                datetime.strptime(f"{match.group('date')}{match.group('end')}", "%Y%m%d%H%M%S")
             calendar_ok = True
         except ValueError:
             calendar_ok = False
@@ -163,9 +157,7 @@ def validate_entry_against_grammar(entry: FixtureEntry) -> bool:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", default="out", help="output directory for files")
-    parser.add_argument(
-        "--size-bytes", type=int, default=256, help="placeholder file size"
-    )
+    parser.add_argument("--size-bytes", type=int, default=256, help="placeholder file size")
     args = parser.parse_args()
 
     out_dir = Path(__file__).parent / args.out

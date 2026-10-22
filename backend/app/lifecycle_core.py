@@ -7,7 +7,7 @@ condition that rejects duplicates and older state transitions.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 ARCHIVE_STORAGE_CLASSES = {"GLACIER", "DEEP_ARCHIVE"}
@@ -43,7 +43,7 @@ def event_object_identity(detail: dict[str, Any]) -> tuple[str, str, str | None]
 
 def _epoch_after(event_time: str, days: int) -> int:
     occurred_at = datetime.fromisoformat(event_time.replace("Z", "+00:00"))
-    return int((occurred_at + timedelta(days=days)).astimezone(timezone.utc).timestamp())
+    return int((occurred_at + timedelta(days=days)).astimezone(UTC).timestamp())
 
 
 def build_lifecycle_update(
@@ -97,9 +97,7 @@ def build_lifecycle_update(
                     "ARCHIVED" if storage_class in ARCHIVE_STORAGE_CLASSES else "AVAILABLE"
                 ),
                 "restoreStatus": (
-                    "NOT_REQUESTED"
-                    if storage_class in ARCHIVE_STORAGE_CLASSES
-                    else "NOT_REQUIRED"
+                    "NOT_REQUESTED" if storage_class in ARCHIVE_STORAGE_CLASSES else "NOT_REQUIRED"
                 ),
             }
         )
@@ -159,10 +157,7 @@ def build_lifecycle_update(
     if detail_type != "Object Deleted":
         names["#deleted"] = "deleted"
         values[":notDeleted"] = False
-        condition = (
-            f"({condition}) AND "
-            "(attribute_not_exists(#deleted) OR #deleted = :notDeleted)"
-        )
+        condition = f"({condition}) AND (attribute_not_exists(#deleted) OR #deleted = :notDeleted)"
     return {
         "UpdateExpression": f"SET {set_expression}",
         "ConditionExpression": condition,

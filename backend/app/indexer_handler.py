@@ -72,9 +72,7 @@ def _update_lifecycle(table: Any, envelope: dict[str, Any], detail: dict[str, An
         detail=detail,
         event_time=envelope["time"],
         event_id=envelope["id"],
-        tombstone_retention_days=int(
-            os.environ.get("CATALOG_TOMBSTONE_RETENTION_DAYS", "365")
-        ),
+        tombstone_retention_days=int(os.environ.get("CATALOG_TOMBSTONE_RETENTION_DAYS", "365")),
     )
     try:
         table.update_item(Key={"PK": items[0]["PK"], "SK": items[0]["SK"]}, **update)

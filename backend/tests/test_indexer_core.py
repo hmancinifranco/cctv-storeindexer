@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import unittest
+from typing import Any
 
 from backend.app.indexer_core import build_catalog_write, is_malformed, stable_object_id
 
@@ -21,7 +22,7 @@ class StableIdTest(unittest.TestCase):
 
 
 class ValidWriteTest(unittest.TestCase):
-    def _write(self, seq: str = "001"):
+    def _write(self, seq: str = "001") -> dict[str, Any]:
         return build_catalog_write(
             bucket="b",
             key="videos/CAM07_20260923_142530-142959.mp4",

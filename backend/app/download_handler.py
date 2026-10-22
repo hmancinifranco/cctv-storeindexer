@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from .download_core import AuthzError, authorize, build_audit_item, is_retrievable
@@ -25,11 +25,7 @@ def _response(status: int, body: dict) -> dict:
 
 def _claims(event: dict[str, Any]) -> tuple[str, str, list[str]]:
     """Extract Cognito subject, display name, and groups from the authorizer."""
-    claims = (
-        event.get("requestContext", {})
-        .get("authorizer", {})
-        .get("claims", {})
-    )
+    claims = event.get("requestContext", {}).get("authorizer", {}).get("claims", {})
     sub = claims.get("sub", "unknown")
     name = claims.get("email") or claims.get("cognito:username") or sub
     raw_groups = claims.get("cognito:groups", "")
@@ -48,9 +44,7 @@ def handler(event: dict[str, Any], _context: Any = None) -> dict:
     bucket = os.environ["VIDEO_BUCKET"]
     ttl = int(os.environ.get("PRESIGN_TTL_SECONDS", "120"))
     request_id = event.get("requestContext", {}).get("requestId", "unknown")
-    source_ip = (
-        event.get("requestContext", {}).get("identity", {}).get("sourceIp", "unknown")
-    )
+    source_ip = event.get("requestContext", {}).get("identity", {}).get("sourceIp", "unknown")
 
     dynamodb = boto3.resource("dynamodb")
     catalog = dynamodb.Table(os.environ["CATALOG_TABLE"])
@@ -69,9 +63,9 @@ def handler(event: dict[str, Any], _context: Any = None) -> dict:
     catalog_items = resolved.get("Items", [])
     catalog_item = catalog_items[0] if catalog_items else {}
     object_key = catalog_item.get("objectKey")
-    is_deleted = catalog_item.get("deleted", False) or catalog_item.get(
-        "lifecycleState"
-    ) == "DELETED"
+    is_deleted = (
+        catalog_item.get("deleted", False) or catalog_item.get("lifecycleState") == "DELETED"
+    )
 
     try:
         authorize(groups=groups, object_exists=bool(object_key) and not is_deleted)
@@ -91,13 +85,15 @@ def handler(event: dict[str, Any], _context: Any = None) -> dict:
             409, {"code": "RESTORE_REQUIRED", "message": "object requires restoration"}
         )
 
+    if not isinstance(object_key, str):
+        return _response(404, {"code": "NOT_FOUND", "message": "object not in catalog"})
     url = s3.generate_presigned_url(
         "get_object",
         Params={"Bucket": bucket, "Key": object_key},
         ExpiresIn=ttl,
     )
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     audit.put_item(
         Item=build_audit_item(
             stable_id=video_id,

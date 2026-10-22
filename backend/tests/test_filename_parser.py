@@ -48,6 +48,8 @@ class ParserUnitTest(unittest.TestCase):
     def test_cross_midnight_end_rolls_forward(self) -> None:
         r = self.parser.parse("CAM03_20260923_235000-001000.mp4")
         self.assertEqual(r.status, "OK")
+        assert r.ends_at_utc is not None
+        assert r.recorded_at_utc is not None
         self.assertGreater(r.ends_at_utc, r.recorded_at_utc)
 
     def test_malformed_has_reason(self) -> None:
