@@ -1,0 +1,736 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Video Archive Prototype infrastructure:
+  private S3 video + SPA buckets with configurable retention lifecycle,
+  scoped PoC uploader role, fail-closed IP-allowlist parameters, and Cognito
+  identity. All account-specific values come from .env (see .env.example).
+
+# ---------------------------------------------------------------------------
+# Parameters — sourced from .env at deploy time (infra/deploy.sh).
+# ---------------------------------------------------------------------------
+Parameters:
+  ProjectName:
+    Type: String
+    Default: cctv-storeindexer
+  Environment:
+    Type: String
+    Default: demo
+  VideoBucketName:
+    Type: String
+    Default: ""
+    Description: Optional explicit bucket name; empty lets CloudFormation generate one.
+  IngestPrefix:
+    Type: String
+    Default: videos
+  RetentionMode:
+    Type: String
+    AllowedValues: ["expire", "keep"]
+    Default: expire
+    Description: expire = delete objects after RetentionDays; keep = no auto-deletion.
+  RetentionDays:
+    Type: Number
+    Default: 60
+    MinValue: 1
+  CatalogTombstoneRetentionDays:
+    Type: Number
+    Default: 365
+    MinValue: 1
+    Description: Days to retain deleted catalog records before DynamoDB TTL cleanup.
+  IpAllowlistMode:
+    Type: String
+    AllowedValues: ["enforce", "disabled"]
+    Default: enforce
+    Description: enforce = require OfficeAllowedCidrs (fail closed if empty); disabled = explicit opt-out.
+  OfficeAllowedCidrs:
+    Type: String
+    Default: ""
+    Description: Comma-separated public office CIDRs (no spaces). Required when IpAllowlistMode=enforce.
+  RolesAnywhereEnabled:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "false"
+    Description: >
+      Roadmap option. When "true", create the IAM Roles Anywhere profile and
+      allow that service to assume the shared uploader role.
+  UploaderIamUserName:
+    Type: String
+    Default: ""
+    AllowedPattern: '^$|^[\w+=,.@-]{1,64}$'
+    ConstraintDescription: Use a simple IAM user name without a path.
+    Description: >
+      Existing IAM technical user for the PoC uploader. The stack never creates
+      access keys. When set, the user can only assume the scoped uploader role.
+
+# ---------------------------------------------------------------------------
+# Rules — deploy-time guard: enforce mode MUST have a non-empty allowlist.
+# This is the fail-closed control (R6): an empty allowlist blocks deployment.
+# ---------------------------------------------------------------------------
+Rules:
+  UploaderMechanismRequired:
+    Assertions:
+      - Assert: !Or
+          - !Equals [!Ref RolesAnywhereEnabled, "true"]
+          - !Not [!Equals [!Ref UploaderIamUserName, ""]]
+        AssertDescription: >
+          Configure an existing UploaderIamUserName for the PoC or explicitly
+          enable the IAM Roles Anywhere roadmap.
+  EnforceRequiresCidrs:
+    RuleCondition: !Equals [!Ref IpAllowlistMode, "enforce"]
+    Assertions:
+      - Assert: !Not [!Equals [!Ref OfficeAllowedCidrs, ""]]
+        AssertDescription: >
+          OFFICE_ALLOWED_CIDRS must be non-empty when IP_ALLOWLIST_MODE=enforce
+          (fail-closed perimeter). Set CIDRs in .env or use IP_ALLOWLIST_MODE=disabled.
+
+Conditions:
+  HasBucketName: !Not [!Equals [!Ref VideoBucketName, ""]]
+  IsExpire: !Equals [!Ref RetentionMode, "expire"]
+  EnforceIp: !Equals [!Ref IpAllowlistMode, "enforce"]
+  HasRolesAnywhere: !Equals [!Ref RolesAnywhereEnabled, "true"]
+  HasIamUserUploader: !Not [!Equals [!Ref UploaderIamUserName, ""]]
+  HasUploaderAccess: !Or
+    - !Condition HasRolesAnywhere
+    - !Condition HasIamUserUploader
+
+Resources:
+  # -------------------------- Video bucket (private) -----------------------
+  VideoBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !If [HasBucketName, !Ref VideoBucketName, !Ref "AWS::NoValue"]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: true
+      LifecycleConfiguration:
+        Rules: !If
+          - IsExpire
+          - - Id: abort-incomplete-multipart-uploads
+              Status: Enabled
+              AbortIncompleteMultipartUpload:
+                DaysAfterInitiation: 7
+            - Id: expire-objects
+              Status: Enabled
+              ExpirationInDays: !Ref RetentionDays
+          - - Id: abort-incomplete-multipart-uploads
+              Status: Enabled
+              AbortIncompleteMultipartUpload:
+                DaysAfterInitiation: 7
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  VideoBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref VideoBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt VideoBucket.Arn
+              - !Sub "${VideoBucket.Arn}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+          # Independent IP control for the DIRECT presigned GetObject path (R6),
+          # because a presigned URL bypasses CloudFront/WAF. Only when enforce.
+          - !If
+            - EnforceIp
+            - Sid: RestrictGetObjectToOfficeCidrs
+              Effect: Deny
+              Principal: "*"
+              Action: "s3:GetObject"
+              Resource: !Sub "${VideoBucket.Arn}/*"
+              Condition:
+                NotIpAddress:
+                  "aws:SourceIp": !Split [",", !Ref OfficeAllowedCidrs]
+            - !Ref "AWS::NoValue"
+
+  # -------------------------- SPA bucket (private) -------------------------
+  SpaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  SpaBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SpaBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt SpaBucket.Arn
+              - !Sub "${SpaBucket.Arn}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+          - Sid: AllowCloudFrontOACRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: "s3:GetObject"
+            Resource: !Sub "${SpaBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                "AWS:SourceArn": !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${SpaDistribution}"
+
+  # -------------------------- CloudFront front door -----------------------
+  # Single origin for the browser: SPA from S3 (via OAC) + API under /v1/*.
+  # Because the SPA and API share this domain, browser calls are same-origin
+  # and NO CORS is needed (design §8 front door). The Cognito hosted-UI callback
+  # URL is this distribution's domain, resolved in-stack via GetAtt.
+  SpaOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${ProjectName}-${Environment}-spa-oac"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  SpaDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub "${ProjectName}-${Environment} SPA + API front door"
+        DefaultRootObject: index.html
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+        Origins:
+          - Id: spa-s3
+            DomainName: !GetAtt SpaBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt SpaOAC.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+          - Id: api-gw
+            DomainName: !Sub "${VideoApi}.execute-api.${AWS::Region}.amazonaws.com"
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [TLSv1.2]
+        DefaultCacheBehavior:
+          TargetOriginId: spa-s3
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          Compress: true
+          ForwardedValues:
+            QueryString: false
+            Cookies: { Forward: none }
+        CacheBehaviors:
+          - PathPattern: /v1/*
+            TargetOriginId: api-gw
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            Compress: true
+            ForwardedValues:
+              QueryString: true
+              Headers: [Authorization]
+              Cookies: { Forward: none }
+            MinTTL: 0
+            DefaultTTL: 0
+            MaxTTL: 0
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+
+  # -------------------------- Cognito identity ----------------------------
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "${ProjectName}-${Environment}"
+      # MFA OFF for the demo; production requires MFA (roadmap).
+      MfaConfiguration: "OFF"
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 12
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub "${ProjectName}-${Environment}-spa"
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_ADMIN_USER_PASSWORD_AUTH
+      PreventUserExistenceErrors: ENABLED
+      # Hosted-UI OAuth (code flow). Callback/logout target the CloudFront
+      # domain, resolved in-stack via GetAtt (no chicken-and-egg).
+      SupportedIdentityProviders:
+        - COGNITO
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - openid
+        - email
+        - profile
+      CallbackURLs:
+        - !Sub "https://${SpaDistribution.DomainName}/"
+      LogoutURLs:
+        - !Sub "https://${SpaDistribution.DomainName}/"
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Sub "${ProjectName}-${Environment}-${AWS::AccountId}"
+      UserPoolId: !Ref UserPool
+
+  OperatorsGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Operators
+      Description: Users allowed to search, request restore, and download.
+      UserPoolId: !Ref UserPool
+
+  # -------------------------- DynamoDB catalog ----------------------------
+  # Catalog: PK = DAY#<YYYY-MM-DD>, SK = TS#<utc>#CAM#<id>#OBJ#<stableId>
+  # GSI by-camera: PK = CAM#<id>, SK = <utc>#<stableId>
+  # On-demand billing + PITR (design §5.1). No Scan in query paths (R3).
+  CatalogTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "${ProjectName}-${Environment}-catalog"
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: catalogExpiresAt
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
+          AttributeType: S
+        - AttributeName: GSI2PK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: by-camera
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: by-object
+          KeySchema:
+            - AttributeName: GSI2PK
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Audit: PK = OBJ#<stableId>, SK = AT#<utc>#<action>#<requestId>
+  # Never stores the presigned URL / tokens (R8).
+  AuditTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "${ProjectName}-${Environment}-audit"
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  # -------------------------- Indexing pipeline ---------------------------
+  # S3 ObjectCreated -> EventBridge -> SQS(+DLQ) -> Indexer Lambda -> Catalog.
+  IndexerDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ProjectName}-${Environment}-indexer-dlq"
+      MessageRetentionPeriod: 1209600  # 14 days
+
+  IndexerQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ProjectName}-${Environment}-indexer"
+      VisibilityTimeout: 180
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt IndexerDLQ.Arn
+        maxReceiveCount: 5
+
+  IndexerQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref IndexerQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowEventBridge
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: "sqs:SendMessage"
+            Resource: !GetAtt IndexerQueue.Arn
+            Condition:
+              ArnEquals:
+                "aws:SourceArn": !GetAtt ObjectLifecycleRule.Arn
+
+  # Routes object creation, deletion, storage transitions and restores through
+  # one buffered consumer. S3 EventBridge delivery is at-least-once.
+  ObjectLifecycleRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${ProjectName}-${Environment}-object-lifecycle"
+      EventPattern:
+        source:
+          - aws.s3
+        detail-type:
+          - "Object Created"
+          - "Object Deleted"
+          - "Object Storage Class Changed"
+          - "Object Access Tier Changed"
+          - "Object Restore Initiated"
+          - "Object Restore Completed"
+          - "Object Restore Expired"
+        detail:
+          bucket:
+            name:
+              - !Ref VideoBucket
+      Targets:
+        - Id: indexer-queue
+          Arn: !GetAtt IndexerQueue.Arn
+
+  IndexerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${Environment}-indexer"
+      Runtime: python3.12
+      Handler: app.indexer_handler.handler
+      CodeUri: ../backend/
+      Timeout: 60
+      MemorySize: 256
+      Environment:
+        Variables:
+          CATALOG_TABLE: !Ref CatalogTable
+          CATALOG_TOMBSTONE_RETENTION_DAYS: !Ref CatalogTombstoneRetentionDays
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CatalogTable
+      Events:
+        FromQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt IndexerQueue.Arn
+            BatchSize: 10
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+    Metadata:
+      # Custom build (Makefile) so SAM does NOT invoke PythonPipBuilder, which
+      # requires an exact python3.12 binary on PATH. The function has no
+      # third-party deps (boto3 is in the Lambda runtime), so the build just
+      # copies the app package. Falls back to pip only if requirements.txt has
+      # real entries. Avoids a local python3.12 / Docker dependency.
+      BuildMethod: makefile
+
+  # ---------------------------- Search / Download API ---------------------
+  # REST API (WAF-associable per ADR-002) with a Cognito User Pool authorizer.
+  # When IP_ALLOWLIST_MODE=enforce, a resource policy restricts source IPs on
+  # the stage so the default execute-api endpoint cannot bypass the allowlist
+  # (R6). In the demo (disabled) Cognito auth still applies.
+  VideoApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "${ProjectName}-${Environment}-api"
+      StageName: v1
+      Auth:
+        DefaultAuthorizer: CognitoAuth
+        Authorizers:
+          CognitoAuth:
+            UserPoolArn: !GetAtt UserPool.Arn
+      # IP enforcement on the API stage (enforce mode) is delivered by a
+      # regional WAFv2 WebACL association per ADR-006 (production path), wired
+      # in the phase that turns enforce on. The demo runs IP_ALLOWLIST_MODE=
+      # disabled, so only Cognito auth applies here. The direct S3 download
+      # path keeps its independent bucket-policy SourceIp control (R6).
+
+  SearchFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${Environment}-search"
+      Runtime: python3.12
+      Handler: app.search_handler.handler
+      CodeUri: ../backend/
+      Timeout: 15
+      MemorySize: 256
+      Environment:
+        Variables:
+          CATALOG_TABLE: !Ref CatalogTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref CatalogTable
+      Events:
+        Search:
+          Type: Api
+          Properties:
+            RestApiId: !Ref VideoApi
+            Path: /videos
+            Method: get
+        Health:
+          Type: Api
+          Properties:
+            RestApiId: !Ref VideoApi
+            Path: /health
+            Method: get
+            Auth:
+              Authorizer: NONE
+    Metadata:
+      BuildMethod: makefile
+
+  DownloadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${Environment}-download"
+      Runtime: python3.12
+      Handler: app.download_handler.handler
+      CodeUri: ../backend/
+      Timeout: 15
+      MemorySize: 256
+      Environment:
+        Variables:
+          VIDEO_BUCKET: !Ref VideoBucket
+          CATALOG_TABLE: !Ref CatalogTable
+          AUDIT_TABLE: !Ref AuditTable
+          PRESIGN_TTL_SECONDS: "120"
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref CatalogTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref AuditTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - "s3:GetObject"
+              Resource: !Sub "${VideoBucket.Arn}/*"
+      Events:
+        Download:
+          Type: Api
+          Properties:
+            RestApiId: !Ref VideoApi
+            Path: /videos/{videoId}/download
+            Method: post
+    Metadata:
+      BuildMethod: makefile
+
+  # -------------------------- On-premises uploader -------------------------
+  # The PoC uses an existing technical IAM user only as a credential source.
+  # That user receives no direct S3 permissions: it can only assume this role.
+  # The role is write-only to the ingest prefix and returns temporary STS
+  # credentials. Roles Anywhere can assume the same role when enabled later.
+  RaUploadRole:
+    Type: AWS::IAM::Role
+    Condition: HasUploaderAccess
+    Properties:
+      RoleName: !Sub "${ProjectName}-${Environment}-uploader"
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - !If
+            - HasIamUserUploader
+            - Sid: AllowExactTechnicalUser
+              Effect: Allow
+              Principal:
+                AWS: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:user/${UploaderIamUserName}"
+              Action: "sts:AssumeRole"
+            - !Ref "AWS::NoValue"
+          - !If
+            - HasRolesAnywhere
+            - Sid: AllowRolesAnywhereRoadmap
+              Effect: Allow
+              Principal:
+                Service: rolesanywhere.amazonaws.com
+              Action:
+                - "sts:AssumeRole"
+                - "sts:SetSourceIdentity"
+                - "sts:TagSession"
+            - !Ref "AWS::NoValue"
+      Policies:
+        - PolicyName: write-only-to-ingest-prefix
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: MultipartUploadToPrefix
+                Effect: Allow
+                Action:
+                  - "s3:PutObject"
+                  - "s3:AbortMultipartUpload"
+                  - "s3:ListMultipartUploadParts"
+                Resource:
+                  - !Sub "${VideoBucket.Arn}/${IngestPrefix}/*"
+              - Sid: ListOwnPrefixOnly
+                Effect: Allow
+                Action: "s3:ListBucket"
+                Resource: !GetAtt VideoBucket.Arn
+                Condition:
+                  StringLike:
+                    "s3:prefix": !Sub "${IngestPrefix}/*"
+
+  # Attached to the pre-existing technical user. This is the user's only
+  # application permission; CloudFormation never creates or exposes its key.
+  UploaderUserAssumeRolePolicy:
+    Type: AWS::IAM::Policy
+    Condition: HasIamUserUploader
+    Properties:
+      PolicyName: !Sub "${ProjectName}-${Environment}-assume-uploader-role"
+      Users:
+        - !Ref UploaderIamUserName
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AssumeOnlyUploaderRole
+            Effect: Allow
+            Action: "sts:AssumeRole"
+            Resource: !GetAtt RaUploadRole.Arn
+
+  RaProfile:
+    Type: AWS::RolesAnywhere::Profile
+    Condition: HasRolesAnywhere
+    Properties:
+      Name: !Sub "${ProjectName}-${Environment}-uploader-profile"
+      Enabled: true
+      RoleArns:
+        - !GetAtt RaUploadRole.Arn
+      DurationSeconds: 3600
+
+Outputs:
+  VideoBucketName:
+    Description: Private S3 bucket holding recordings.
+    Value: !Ref VideoBucket
+  SpaBucketName:
+    Description: Private S3 bucket holding the SPA assets.
+    Value: !Ref SpaBucket
+  IngestPrefix:
+    Description: Key prefix under which recordings are uploaded.
+    Value: !Ref IngestPrefix
+  UserPoolId:
+    Description: Cognito User Pool id.
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Description: Cognito User Pool app client id.
+    Value: !Ref UserPoolClient
+  RetentionSummary:
+    Description: Effective retention configuration.
+    Value: !If [IsExpire, !Sub "expire after ${RetentionDays} days", "keep (no auto-deletion)"]
+  IpAllowlistSummary:
+    Description: Effective network perimeter mode.
+    Value: !Ref IpAllowlistMode
+  CatalogTableName:
+    Description: DynamoDB catalog table.
+    Value: !Ref CatalogTable
+  AuditTableName:
+    Description: DynamoDB audit table.
+    Value: !Ref AuditTable
+  ApiEndpoint:
+    Description: Base URL of the search/download REST API (v1 stage).
+    Value: !Sub "https://${VideoApi}.execute-api.${AWS::Region}.amazonaws.com/v1"
+  CloudFrontUrl:
+    Description: Public HTTPS URL of the SPA (and API under /v1) via CloudFront.
+    Value: !Sub "https://${SpaDistribution.DomainName}"
+  CloudFrontDistributionId:
+    Description: CloudFront distribution ID used for cache invalidations.
+    Value: !Ref SpaDistribution
+  HostedUiDomain:
+    Description: Cognito hosted-UI domain (login).
+    Value: !Sub "https://${ProjectName}-${Environment}-${AWS::AccountId}.auth.${AWS::Region}.amazoncognito.com"
+  UploaderRoleArn:
+    Condition: HasUploaderAccess
+    Description: Scoped write-only uploader role ARN.
+    Value: !GetAtt RaUploadRole.Arn
+  RaProfileArn:
+    Condition: HasRolesAnywhere
+    Description: IAM Roles Anywhere profile ARN (roadmap; set RA_PROFILE_ARN in .env).
+    Value: !GetAtt RaProfile.ProfileArn
+  RaRoleArn:
+    Condition: HasRolesAnywhere
+    Description: Compatibility output for the shared uploader role used by Roles Anywhere.
+    Value: !GetAtt RaUploadRole.Arn

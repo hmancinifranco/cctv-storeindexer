@@ -1,0 +1,56 @@
+# --- Secrets / non-pushable local config ---
+.env
+.env.*
+!.env.example
+
+# --- IAM Roles Anywhere material (never commit certificates or keys) ---
+*.pem
+*.key
+*.p12
+*.pfx
+*.csr
+certs/
+private/
+
+# --- AWS SAM / CloudFormation build artifacts ---
+.aws-sam/
+samconfig.toml
+samconfig.local.toml
+packaged.yaml
+
+# --- Node / frontend ---
+node_modules/
+dist/
+build/
+*.local
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# --- OS / editor ---
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# --- Synthetic fixture placeholder files (regenerable; generator + manifest are committed) ---
+uploader/synthetic/out/
+
+# --- Generated local evidence / TypeScript metadata ---
+teardown-output/
+*.tsbuildinfo
+
+# --- Local unrelated working notes (not part of the customer deliverable) ---
+playbook-kiro-registry-implementacion.md
+
+# --- Local portable development tools ---
+.tools/
+
+# --- Local Kiro CLI settings; keep specs/steering tracked ---
+.kiro/settings/

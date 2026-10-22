@@ -1,0 +1,208 @@
+{
+  "grammar": "^CAM(?P<camera>\\d+)_(?P<date>\\d{8})_(?P<start>\\d{6})(?:-(?P<end>\\d{6}))?\\.(?P<ext>[A-Za-z0-9]+)$",
+  "parser_version": "v1",
+  "timezone": "America/Argentina/Buenos_Aires (UTC-3, no DST)",
+  "allowed_extensions": [
+    "avi",
+    "mkv",
+    "mp4"
+  ],
+  "counts": {
+    "total": 19,
+    "valid": 5,
+    "edge": 4,
+    "invalid": 10
+  },
+  "entries": [
+    {
+      "filename": "CAM01_20260921_080000-083000.mp4",
+      "category": "valid",
+      "expected_status": "OK",
+      "reason": "",
+      "camera_id": "01",
+      "recorded_at_local": "20260921T08:00:00-03:00",
+      "recorded_at_utc": "2026-09-21T11:00:00+00:00",
+      "ends_at_utc": "2026-09-21T11:30:00+00:00"
+    },
+    {
+      "filename": "CAM01_20260921_090000.mp4",
+      "category": "valid",
+      "expected_status": "OK",
+      "reason": "",
+      "camera_id": "01",
+      "recorded_at_local": "20260921T09:00:00-03:00",
+      "recorded_at_utc": "2026-09-21T12:00:00+00:00",
+      "ends_at_utc": null
+    },
+    {
+      "filename": "CAM02_20260921_142530-142959.avi",
+      "category": "valid",
+      "expected_status": "OK",
+      "reason": "",
+      "camera_id": "02",
+      "recorded_at_local": "20260921T14:25:30-03:00",
+      "recorded_at_utc": "2026-09-21T17:25:30+00:00",
+      "ends_at_utc": "2026-09-21T17:29:59+00:00"
+    },
+    {
+      "filename": "CAM07_20260922_235500-235959.mkv",
+      "category": "valid",
+      "expected_status": "OK",
+      "reason": "",
+      "camera_id": "07",
+      "recorded_at_local": "20260922T23:55:00-03:00",
+      "recorded_at_utc": "2026-09-23T02:55:00+00:00",
+      "ends_at_utc": "2026-09-23T02:59:59+00:00"
+    },
+    {
+      "filename": "CAM12_20260922_000000-001500.mp4",
+      "category": "valid",
+      "expected_status": "OK",
+      "reason": "",
+      "camera_id": "12",
+      "recorded_at_local": "20260922T00:00:00-03:00",
+      "recorded_at_utc": "2026-09-22T03:00:00+00:00",
+      "ends_at_utc": "2026-09-22T03:15:00+00:00"
+    },
+    {
+      "filename": "CAM03_20260923_000000-010000.mp4",
+      "category": "edge",
+      "expected_status": "OK",
+      "reason": "",
+      "camera_id": "03",
+      "recorded_at_local": "20260923T00:00:00-03:00",
+      "recorded_at_utc": "2026-09-23T03:00:00+00:00",
+      "ends_at_utc": "2026-09-23T04:00:00+00:00"
+    },
+    {
+      "filename": "CAM03_20260923_235000-001000.mp4",
+      "category": "edge",
+      "expected_status": "OK",
+      "reason": "",
+      "camera_id": "03",
+      "recorded_at_local": "20260923T23:50:00-03:00",
+      "recorded_at_utc": "2026-09-24T02:50:00+00:00",
+      "ends_at_utc": "2026-09-23T03:10:00+00:00"
+    },
+    {
+      "filename": "CAM128_20260923_120000-121500.mp4",
+      "category": "edge",
+      "expected_status": "OK",
+      "reason": "",
+      "camera_id": "128",
+      "recorded_at_local": "20260923T12:00:00-03:00",
+      "recorded_at_utc": "2026-09-23T15:00:00+00:00",
+      "ends_at_utc": "2026-09-23T15:15:00+00:00"
+    },
+    {
+      "filename": "CAM01_20260921_080000-083000.mp4",
+      "category": "edge",
+      "expected_status": "OK",
+      "reason": "",
+      "camera_id": "01",
+      "recorded_at_local": "20260921T08:00:00-03:00",
+      "recorded_at_utc": "2026-09-21T11:00:00+00:00",
+      "ends_at_utc": "2026-09-21T11:30:00+00:00"
+    },
+    {
+      "filename": "CAM01_20260921.mp4",
+      "category": "invalid",
+      "expected_status": "INVALID_METADATA",
+      "reason": "missing time component",
+      "camera_id": null,
+      "recorded_at_local": null,
+      "recorded_at_utc": null,
+      "ends_at_utc": null
+    },
+    {
+      "filename": "CAM_20260921_080000.mp4",
+      "category": "invalid",
+      "expected_status": "INVALID_METADATA",
+      "reason": "missing camera id",
+      "camera_id": null,
+      "recorded_at_local": null,
+      "recorded_at_utc": null,
+      "ends_at_utc": null
+    },
+    {
+      "filename": "CAM01_2026-09-21_080000.mp4",
+      "category": "invalid",
+      "expected_status": "INVALID_METADATA",
+      "reason": "date not YYYYMMDD",
+      "camera_id": null,
+      "recorded_at_local": null,
+      "recorded_at_utc": null,
+      "ends_at_utc": null
+    },
+    {
+      "filename": "CAM01_20260921_8000.mp4",
+      "category": "invalid",
+      "expected_status": "INVALID_METADATA",
+      "reason": "time not HHMMSS",
+      "camera_id": null,
+      "recorded_at_local": null,
+      "recorded_at_utc": null,
+      "ends_at_utc": null
+    },
+    {
+      "filename": "cam01_20260921_080000.mp4",
+      "category": "invalid",
+      "expected_status": "INVALID_METADATA",
+      "reason": "lowercase prefix / no CAM",
+      "camera_id": null,
+      "recorded_at_local": null,
+      "recorded_at_utc": null,
+      "ends_at_utc": null
+    },
+    {
+      "filename": "CAM01 20260921 080000.mp4",
+      "category": "invalid",
+      "expected_status": "INVALID_METADATA",
+      "reason": "spaces instead of underscores",
+      "camera_id": null,
+      "recorded_at_local": null,
+      "recorded_at_utc": null,
+      "ends_at_utc": null
+    },
+    {
+      "filename": "CAM01_20260921_080000.txt",
+      "category": "invalid",
+      "expected_status": "INVALID_METADATA",
+      "reason": "disallowed extension",
+      "camera_id": null,
+      "recorded_at_local": null,
+      "recorded_at_utc": null,
+      "ends_at_utc": null
+    },
+    {
+      "filename": "CÁM01_20260921_080000.mp4",
+      "category": "invalid",
+      "expected_status": "INVALID_METADATA",
+      "reason": "accented / non-ASCII prefix",
+      "camera_id": null,
+      "recorded_at_local": null,
+      "recorded_at_utc": null,
+      "ends_at_utc": null
+    },
+    {
+      "filename": "CAM01_20261301_080000.mp4",
+      "category": "invalid",
+      "expected_status": "INVALID_METADATA",
+      "reason": "impossible month 13",
+      "camera_id": null,
+      "recorded_at_local": null,
+      "recorded_at_utc": null,
+      "ends_at_utc": null
+    },
+    {
+      "filename": "CAM01_20260921_250000.mp4",
+      "category": "invalid",
+      "expected_status": "INVALID_METADATA",
+      "reason": "impossible hour 25",
+      "camera_id": null,
+      "recorded_at_local": null,
+      "recorded_at_utc": null,
+      "ends_at_utc": null
+    }
+  ]
+}

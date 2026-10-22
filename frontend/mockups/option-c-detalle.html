@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<!-- Mockup Option C — "Maestro-detalle": lista de resultados a la izquierda + panel de detalle a la derecha.
+     Estilo Material UI. Estático, solo para revisión de diseño (T6.1). -->
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Archive — Opción C (Maestro-detalle)</title>
+<style>
+  :root{--primary:#1976d2;--bg:#f4f6f8;--card:#fff;--text:#1a2027;--muted:#6b7785;--border:#e0e4e8;--ok:#2e7d32;--warn:#ed6c02;--danger:#d32f2f}
+  *{box-sizing:border-box} body{margin:0;font-family:Roboto,-apple-system,Segoe UI,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  .appbar{background:var(--primary);color:#fff;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 4px rgba(0,0,0,.15)}
+  .appbar h1{font-size:18px;font-weight:500;margin:0}.user{font-size:13px;opacity:.9}
+  .filterbar{background:var(--card);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+  .field{display:flex;flex-direction:column;gap:3px}.field label{font-size:11px;color:var(--muted)}
+  .field input,.field select{padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:13px;background:#fff}
+  .btn{background:var(--primary);color:#fff;border:none;border-radius:4px;padding:9px 18px;font-size:13px;font-weight:500;cursor:pointer}
+  .split{display:grid;grid-template-columns:380px 1fr;gap:0;height:calc(100vh - 118px)}
+  .list{border-right:1px solid var(--border);overflow-y:auto;background:var(--card)}
+  .row{padding:14px 20px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+  .row:hover{background:#f5f7f9} .row.sel{background:#e3f2fd;border-left:3px solid var(--primary);padding-left:17px}
+  .row .dt{font-size:14px;font-weight:500}.row .meta{font-size:12px;color:var(--muted);margin-top:2px}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+  .dot.ok{background:var(--ok)}.dot.invalid{background:var(--danger)}.dot.archived{background:var(--warn)}
+  .detail{padding:32px;overflow-y:auto}
+  .detail h2{font-size:20px;font-weight:500;margin:0 0 4px}.detail .sub{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .kv{display:grid;grid-template-columns:160px 1fr;gap:10px 16px;font-size:14px;margin-bottom:28px}
+  .kv .k{color:var(--muted)} .kv .v{font-weight:500}
+  .chip{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500}
+  .chip.ok{background:#e8f5e9;color:var(--ok)}.chip.invalid{background:#fdecea;color:var(--danger)}.chip.archived{background:#fff4e5;color:var(--warn)}
+  .dlbtn{background:var(--primary);color:#fff;border:none;border-radius:4px;padding:12px 28px;font-size:15px;font-weight:500;cursor:pointer}
+  .hint{font-size:12px;color:var(--muted);margin-top:10px}
+  .banner{border-radius:8px;padding:14px 16px;font-size:14px;margin-bottom:16px}.banner.denied{background:#fff4e5;color:var(--warn)}
+</style></head>
+<body>
+  <div class="appbar"><h1>📹 Archivo de Video</h1><span class="user">operador@cliente.example · Operador · <b>Salir</b></span></div>
+  <div class="filterbar">
+    <div class="field"><label>Fecha</label><input type="date" value="2026-09-21"></div>
+    <div class="field"><label>Desde</label><input type="time" value="08:00"></div>
+    <div class="field"><label>Hasta</label><input type="time" value="18:00"></div>
+    <div class="field"><label>Cámara</label><select><option>Todas</option><option>CAM01</option></select></div>
+    <button class="btn">Buscar</button>
+  </div>
+  <div class="split">
+    <div class="list">
+      <div class="row sel"><div><div class="dt">08:00:00</div><div class="meta"><span class="dot ok"></span>CAM01 · 1.2 GB</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="row"><div><div class="dt">09:00:00</div><div class="meta"><span class="dot ok"></span>CAM01 · 0.9 GB</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="row"><div><div class="dt">14:25:30</div><div class="meta"><span class="dot ok"></span>CAM02 · 1.1 GB</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="row"><div><div class="dt">23:55:00</div><div class="meta"><span class="dot archived"></span>CAM07 · restauración pendiente</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="row"><div><div class="dt">Nombre inválido</div><div class="meta"><span class="dot invalid"></span>metadata inválida</div></div><span style="color:var(--muted)">›</span></div>
+    </div>
+    <div class="detail">
+      <h2>Grabación CAM01</h2>
+      <div class="sub">21 de septiembre de 2026, 08:00:00 (hora local)</div>
+      <div class="kv">
+        <div class="k">Estado</div><div class="v"><span class="chip ok">Disponible</span></div>
+        <div class="k">Cámara</div><div class="v">CAM01</div>
+        <div class="k">Inicio (local)</div><div class="v">2026-09-21 08:00:00 (UTC−3)</div>
+        <div class="k">Fin (local)</div><div class="v">2026-09-21 08:30:00</div>
+        <div class="k">Tamaño</div><div class="v">1.2 GB</div>
+        <div class="k">Archivo</div><div class="v">CAM01_20260921_080000-083000.mp4</div>
+        <div class="k">Almacenamiento</div><div class="v">S3 Standard</div>
+      </div>
+      <button class="dlbtn">⬇ Descargar video</button>
+      <div class="hint">El enlace de descarga es temporal (120 s) y queda registrado en la auditoría de accesos.</div>
+      <div style="margin-top:28px" class="banner denied">🔒 Ejemplo de estado: si no tuvieras permiso, verías este aviso en vez del botón.</div>
+    </div>
+  </div>
+</body></html>

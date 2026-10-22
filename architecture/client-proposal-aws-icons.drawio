@@ -1,0 +1,151 @@
+<!-- BRIEF: Diagrama ejecutivo 16:9 para cliente; arquitectura AWS de almacenamiento (S3 Standard con retención configurable), inventario, búsqueda y descarga auditada de videos; Standard-IA/Intelligent-Tiering y restauración/archivado quedan en roadmap; iconos AWS4 nativos de Draw.io; lectura simple por flujos numerados; fondo claro y paleta AWS. -->
+<mxfile host="app.diagrams.net" modified="2026-09-23T10:40:00.000Z" agent="Kiro" version="24.7.17" type="device">
+  <diagram id="client-aws-architecture" name="Propuesta cliente - AWS Icons">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" background="#FFFFFF" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="Propuesta de arquitectura — Archivo de videovigilancia" style="text;html=1;align=left;verticalAlign=middle;fontSize=26;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="40" y="25" width="1000" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="subtitle" value="Prototipo serverless en AWS · Carga cifrada por Internet · Acceso restringido por ubicación e identidad" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontColor=#5F6B7A;" vertex="1" parent="1">
+          <mxGeometry x="40" y="65" width="1150" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="status" value="ARQUITECTURA DEL PROTOTIPO" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#FFFFFF;fillColor=#FF9900;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1270" y="38" width="275" height="32" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="officeBoundary" value="OFICINA DEL CLIENTE" style="swimlane;html=1;startSize=34;rounded=1;arcSize=8;fillColor=#F7F8FA;strokeColor=#879196;strokeWidth=1.5;fontColor=#232F3E;fontStyle=1;fontSize=13;horizontal=1;" vertex="1" parent="1">
+          <mxGeometry x="35" y="125" width="260" height="625" as="geometry"/>
+        </mxCell>
+        <mxCell id="awsBoundary" value="AWS CLOUD · CUENTA DE DEMO · US-EAST-1" style="swimlane;html=1;startSize=34;rounded=1;arcSize=8;fillColor=#FAFBFC;strokeColor=#879196;strokeWidth=1.5;fontColor=#232F3E;fontStyle=1;fontSize=13;horizontal=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="125" width="1215" height="625" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="flow1" value="1 · CARGA E INVENTARIO AUTOMÁTICO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF3FF;strokeColor=#8AB4E8;fontColor=#1F4E79;fontStyle=1;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="365" y="175" width="1145" height="32" as="geometry"/>
+        </mxCell>
+        <mxCell id="flow2" value="2 · BÚSQUEDA Y DESCARGA CONTROLADA" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3ECFF;strokeColor=#B39DDB;fontColor=#5E35B1;fontStyle=1;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="365" y="410" width="1145" height="32" as="geometry"/>
+        </mxCell>
+        <mxCell id="flow3" value="3 · RETENCIÓN Y AUDITORÍA" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#8BC49D;fontColor=#216E39;fontStyle=1;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="365" y="635" width="1145" height="32" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="windows" value="Servidor Windows&#xa;DVR / NVR" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.traditional_server;fillColor=#5A6B86;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="105" y="230" width="82" height="82" as="geometry"/>
+        </mxCell>
+        <mxCell id="windowsNote" value="Grabaciones finalizadas&#xa;Metadata en el nombre" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#5F6B7A;" vertex="1" parent="1">
+          <mxGeometry x="65" y="338" width="165" height="42" as="geometry"/>
+        </mxCell>
+        <mxCell id="users" value="Usuarios autorizados" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.users;fillColor=#232F3E;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="105" y="490" width="82" height="82" as="geometry"/>
+        </mxCell>
+        <mxCell id="usersNote" value="RR. HH. / perfiles definidos&#xa;IP pública de oficina" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#5F6B7A;" vertex="1" parent="1">
+          <mxGeometry x="58" y="598" width="180" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="dataSync" value="Carga programada a S3&#xa;aws s3 sync + Windows Task Scheduler&#xa;IAM Roles Anywhere (credenciales temporales)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF3FF;strokeColor=#8AB4E8;fontColor=#1F4E79;fontSize=10;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="360" y="228" width="170" height="86" as="geometry"/>
+        </mxCell>
+        <mxCell id="dataSyncFuture" value="Mejora futura&#xa;AWS DataSync (agente SMB)" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.datasync;fillColor=#8C4FFF;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=1;fontColor=#5F6B7A;opacity=70;" vertex="1" parent="1">
+          <mxGeometry x="392" y="324" width="46" height="46" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3Video" value="Amazon S3&#xa;Videos privados" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;fillColor=#7AA116;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="550" y="240" width="74" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="eventBridge" value="Amazon EventBridge&#xa;Objeto creado" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.eventbridge;fillColor=#E7157B;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="720" y="240" width="74" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="sqs" value="Amazon SQS&#xa;Cola + DLQ" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;fillColor=#E7157B;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="890" y="240" width="74" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="indexLambda" value="AWS Lambda&#xa;Indexador idempotente" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;fillColor=#ED7100;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="240" width="74" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="catalog" value="Amazon DynamoDB&#xa;Catálogo por fecha/hora/cámara" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;fillColor=#3B48CC;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="240" width="74" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="invalidMetadata" value="Nombre inválido → estado visible + alarma&#xa;(nunca se descarta silenciosamente)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF4E5;strokeColor=#FFB74D;fontColor=#8A4B08;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1370" y="245" width="125" height="66" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="waf" value="AWS WAF (modo enforce)&#xa;IPs autorizadas" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.waf;fillColor=#DD344C;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="380" y="480" width="74" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="cloudFront" value="Amazon CloudFront&#xa;HTTPS + OAC" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudfront;fillColor=#8C4FFF;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="540" y="480" width="74" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3Web" value="Origen S3 privado" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;fillColor=#7AA116;strokeColor=none;labelPosition=right;verticalLabelPosition=middle;verticalAlign=middle;align=left;html=1;fontSize=10;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="550" y="575" width="46" height="46" as="geometry"/>
+        </mxCell>
+        <mxCell id="cognito" value="Amazon Cognito&#xa;Identidad individual" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cognito;fillColor=#DD344C;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="700" y="480" width="74" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="apiGateway" value="Amazon API Gateway&#xa;REST API protegida" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.api_gateway;fillColor=#8C4FFF;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="870" y="480" width="74" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="queryLambda" value="AWS Lambda&#xa;Buscar · autorizar · descargar" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;fillColor=#ED7100;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="480" width="74" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="download" value="URL prefirmada corta&#xa;Descarga directa desde S3&#xa;restringida por IP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#66BB6A;fontColor=#216E39;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1215" y="475" width="150" height="78" as="geometry"/>
+        </mxCell>
+        <mxCell id="auditDb" value="Amazon DynamoDB&#xa;Auditoría de solicitudes" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;fillColor=#3B48CC;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="1410" y="480" width="74" height="74" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="glacier" value="Retención configurable&#xa;S3 Standard · expira en N días&#xa;o sin borrado (variable en .env)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#8BC49D;fontColor=#216E39;fontSize=10;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="400" y="676" width="190" height="66" as="geometry"/>
+        </mxCell>
+        <mxCell id="restoreNote" value="Roadmap: Standard-IA / Intelligent-Tiering&#xa;y flujo de restauración (Glacier)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#F5F5F5;strokeColor=#B0B0B0;fontColor=#6B6B6B;fontSize=10;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="610" y="672" width="250" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="cloudTrail" value="AWS CloudTrail&#xa;Accesos a objetos S3" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudtrail;fillColor=#E7157B;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="970" y="680" width="62" height="62" as="geometry"/>
+        </mxCell>
+        <mxCell id="cloudWatch" value="Amazon CloudWatch&#xa;Métricas · logs · alarmas" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudwatch;fillColor=#E7157B;strokeColor=none;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="680" width="62" height="62" as="geometry"/>
+        </mxCell>
+        <mxCell id="auditNote" value="La aplicación registra quién solicitó la URL.&#xa;CloudTrail registra el acceso al objeto.&#xa;Son evidencias relacionadas, no equivalentes." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#F2C94C;fontColor=#6D4C00;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="679" width="205" height="62" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="controlBar" value="Controles transversales: S3 privado y cifrado · TLS · IAM mínimo privilegio · Cognito · WAF en modo enforce · OpenAPI · Sin URLs/tokens en logs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#232F3E;strokeColor=none;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="35" y="785" width="1510" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="footer" value="Datos a confirmar por cliente: software DVR/NVR · formato de nombres · volumen real · retención · usuarios/roles · CIDR de oficina" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#5F6B7A;" vertex="1" parent="1">
+          <mxGeometry x="150" y="838" width="1300" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="eWindowsDataSync" value="Batch nocturno" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5F6B7A;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="windows" target="dataSync"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eDataSyncS3" value="Internet cifrada (TLS) · multipart" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5F6B7A;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="dataSync" target="s3Video"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eFutureS3" value="opción gestionada (futuro)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#8C4FFF;strokeWidth=1.5;endArrow=block;endFill=1;dashed=1;fontSize=10;fontColor=#5F6B7A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="dataSyncFuture" target="s3Video"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eS3Event" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5F6B7A;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="s3Video" target="eventBridge"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eEventSqs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5F6B7A;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="eventBridge" target="sqs"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eSqsIndexer" value="Retry" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5F6B7A;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="sqs" target="indexLambda"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eIndexerCatalog" value="Metadata validada" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5F6B7A;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="indexLambda" target="catalog"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eIndexerInvalid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FF9900;strokeWidth=1.5;endArrow=block;endFill=1;dashed=1;" edge="1" parent="1" source="indexLambda" target="invalidMetadata"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="eUsersWaf" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5E35B1;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="users" target="waf"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eWafCf" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5E35B1;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="waf" target="cloudFront"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eCfWeb" value="Interfaz" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5E35B1;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="cloudFront" target="s3Web"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eWebCognito" value="Login" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#DD344C;strokeWidth=1.5;endArrow=block;endFill=1;dashed=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="cloudFront" target="cognito"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eWebApi" value="JWT + búsqueda" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5E35B1;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="cognito" target="apiGateway"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eApiQuery" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5E35B1;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="apiGateway" target="queryLambda"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eQueryCatalog" value="Consulta" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#3B48CC;strokeWidth=1.5;endArrow=block;endFill=1;dashed=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="queryLambda" target="catalog"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1160" y="445"/><mxPoint x="1277" y="445"/></Array></mxGeometry></mxCell>
+        <mxCell id="eQueryDownload" value="Autoriza" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#216E39;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="queryLambda" target="download"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eQueryAudit" value="Registra usuario" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#3B48CC;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="queryLambda" target="auditDb"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eDownloadS3" value="Genera URL / verifica estado" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#216E39;strokeWidth=1.5;endArrow=block;endFill=1;dashed=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="download" target="s3Video"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1290" y="390"/><mxPoint x="587" y="390"/></Array></mxGeometry></mxCell>
+        <mxCell id="eDownloadUser" value="Descarga" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#216E39;strokeWidth=2;endArrow=block;endFill=1;dashed=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="download" target="users"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1290" y="610"/><mxPoint x="250" y="610"/></Array></mxGeometry></mxCell>
+
+        <mxCell id="eS3Glacier" value="Lifecycle · retención" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#216E39;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="s3Video" target="glacier"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eGlacierRestore" value="evolución (roadmap)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#B0B0B0;strokeWidth=1.5;endArrow=block;endFill=1;dashed=1;fontSize=10;fontColor=#6B6B6B;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="glacier" target="restoreNote"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eS3Trail" value="GetObject" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E7157B;strokeWidth=1.5;endArrow=block;endFill=1;dashed=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="s3Video" target="cloudTrail"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="640" y="660"/><mxPoint x="1000" y="660"/></Array></mxGeometry></mxCell>
+        <mxCell id="eIndexerWatch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E7157B;strokeWidth=1.5;endArrow=block;endFill=1;dashed=1;" edge="1" parent="1" source="indexLambda" target="cloudWatch"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eQueryWatch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E7157B;strokeWidth=1.5;endArrow=block;endFill=1;dashed=1;" edge="1" parent="1" source="queryLambda" target="cloudWatch"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

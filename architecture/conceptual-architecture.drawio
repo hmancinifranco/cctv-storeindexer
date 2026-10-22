@@ -1,0 +1,96 @@
+<mxfile host="app.diagrams.net" modified="2026-09-23T10:18:00.000Z" agent="Kiro" version="24.7.17" type="device">
+  <diagram id="video-archive" name="Conceptual Architecture">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="Video Archive — Explore Architecture (planning hypothesis)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;fontSize=22;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="20" width="1100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="onprem" value="CUSTOMER OFFICE / ON-PREMISES" style="swimlane;html=1;startSize=30;rounded=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="90" width="300" height="650" as="geometry"/>
+        </mxCell>
+        <mxCell id="aws" value="AWS ACCOUNT — REGION TO CONFIRM" style="swimlane;html=1;startSize=30;rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="370" y="90" width="1170" height="650" as="geometry"/>
+        </mxCell>
+        <mxCell id="windows" value="Windows Server&#xa;DVR/NVR recordings&#xa;(completed files only)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="65" y="180" width="220" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="uploader" value="Scheduled uploader&#xa;Baseline: aws s3 sync + Windows Task Scheduler&#xa;IAM Roles Anywhere (temp credentials)&#xa;Future improvement: AWS DataSync (SMB agent)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="65" y="330" width="220" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="users" value="Authorized users&#xa;Office/VPN egress CIDRs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="65" y="545" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="videoBucket" value="Private S3 video bucket&#xa;TLS + encryption + Block Public Access&#xa;Lifecycle policy TBD" style="shape=datastore;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="150" width="230" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="eventbridge" value="Amazon EventBridge&#xa;Object Created" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="710" y="150" width="170" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="queue" value="Amazon SQS&#xa;retry + DLQ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="930" y="150" width="150" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="indexer" value="Indexer Lambda&#xa;parse + validate&#xa;idempotent conditional write" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="140" width="190" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="catalog" value="DynamoDB catalog&#xa;day/time + camera indexes&#xa;no scans" style="shape=datastore;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1370" y="140" width="135" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="cloudfront" value="CloudFront&#xa;HTTPS + OAC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="360" width="150" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="waf" value="AWS WAF&#xa;fail-closed office IP allowlist" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="275" width="190" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="spaBucket" value="Private S3 SPA bucket&#xa;React + TypeScript + MUI" style="shape=datastore;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="430" y="480" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="cognito" value="Amazon Cognito&#xa;individual identity" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="690" y="285" width="165" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="apiwaf" value="Regional WAF&#xa;office IP allowlist" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="690" y="390" width="165" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="api" value="API Gateway REST API&#xa;Cognito User Pool authorizer&#xa;versioned OpenAPI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="380" width="175" height="85" as="geometry"/>
+        </mxCell>
+        <mxCell id="queryLambda" value="Query / Download / Restore Lambda&#xa;authorization + short URL&#xa;application audit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="370" width="205" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="audit" value="DynamoDB audit events&#xa;URL issuance / restore request" style="shape=datastore;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="350" width="135" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="cloudtrail" value="AWS CloudTrail data events&#xa;observed S3 object GETs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="550" width="205" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="observability" value="CloudWatch logs, metrics, alarms&#xa;DLQ depth • parse errors • API/restore failures&#xa;Never log presigned URLs or tokens" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="760" y="565" width="300" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="Important: WAF on CloudFront does not govern a direct S3 presigned URL.&#xa;The video bucket policy must independently restrict approved source CIDRs." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="410" y="620" width="300" height="85" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="windows" target="uploader"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" value="TLS · nightly s3 sync · multipart" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="uploader" target="videoBucket"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="videoBucket" target="eventbridge"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="eventbridge" target="queue"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="queue" target="indexer"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="indexer" target="catalog"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="users" target="waf"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="waf" target="cloudfront"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="cloudfront" target="spaBucket"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e10" value="login" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="cloudfront" target="cognito"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e11" value="JWT API call" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="cloudfront" target="apiwaf"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="apiwaf" target="api"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="api" target="queryLambda"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e14" value="Query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="queryLambda" target="catalog"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e15" value="Audit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="queryLambda" target="audit"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e16" value="Head/Restore/Presign" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="queryLambda" target="videoBucket"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e17" value="short-lived URL&#xa;+ bucket IP policy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;dashed=1;" edge="1" parent="1" source="videoBucket" target="users"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e18" value="data events" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" edge="1" parent="1" source="videoBucket" target="cloudtrail"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;dashed=1;" edge="1" parent="1" source="indexer" target="observability"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;dashed=1;" edge="1" parent="1" source="queryLambda" target="observability"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

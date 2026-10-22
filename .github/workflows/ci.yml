@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  python:
+    name: Python gates (lint, types, tests, secret-scan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install tooling
+        run: python3 -m pip install ruff mypy pytest cfn-lint pyyaml
+      - name: Lint (ruff)
+        run: |
+          ruff format --check backend uploader
+          ruff check backend uploader
+      - name: Type-check (mypy)
+        run: mypy
+      - name: Unit tests (pytest)
+        run: python3 -m pytest
+      - name: Validate PowerShell uploader scripts
+        shell: pwsh
+        run: ./scripts/validate-powershell.ps1
+      - name: Secret / presigned-URL scan
+        run: bash scripts/scan_secrets.sh
+      - name: Validate templates (if present)
+        run: make validate
+      - name: Validate OpenAPI (if present)
+        run: make openapi-validate

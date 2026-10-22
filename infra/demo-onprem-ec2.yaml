@@ -1,0 +1,226 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Demo "on-premises" recording server (EC2) for the Video Archive
+  prototype. Simulates the customer's Windows server that uploads recordings to
+  S3. Demonstrates TWO credential mechanisms — EC2 instance profile vs IAM Roles
+  Anywhere — using the same `aws s3 sync`. Standalone stack: tear down
+  independently after the demo. Access via SSM Session Manager (no inbound SSH).
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: cctv-storeindexer
+  Environment:
+    Type: String
+    Default: demo
+  VideoBucketName:
+    Type: String
+    Description: Target video bucket from the main stack.
+  IngestPrefix:
+    Type: String
+    Default: videos
+  InstanceType:
+    Type: String
+    Default: t3.micro
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+  RaTrustAnchorArn:
+    Type: String
+    Description: IAM Roles Anywhere trust anchor ARN.
+  RaProfileArn:
+    Type: String
+    Description: IAM Roles Anywhere profile ARN.
+  RaRoleArn:
+    Type: String
+    Description: IAM Roles Anywhere uploader role ARN.
+  ClientCertParam:
+    Type: String
+    Description: SSM parameter name holding the RA client cert PEM.
+  ClientKeyParam:
+    Type: String
+    Description: SSM parameter name holding the RA client key PEM SecureString.
+
+Resources:
+  # Minimal self-contained network (no default VPC needed). One public subnet +
+  # internet gateway so the instance can reach SSM + S3 over egress.
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.20.0.0/24
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-onprem-vpc"
+
+  Igw:
+    Type: AWS::EC2::InternetGateway
+
+  IgwAttach:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref Igw
+
+  Subnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.20.0.0/25
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs ""]
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+
+  DefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: IgwAttach
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref Igw
+
+  SubnetRouteAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTable
+      SubnetId: !Ref Subnet
+
+  # Instance role = credential mechanism #1 (EC2 instance profile). Write-only to
+  # the ingest prefix — same least privilege as the Roles Anywhere role. Also
+  # allows SSM (Session Manager) and reading the two cert params for the RA path.
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${Environment}-onprem-ec2"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: write-only-to-ingest-prefix
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:AbortMultipartUpload
+                  - s3:ListBucketMultipartUploads
+                  - s3:ListMultipartUploadParts
+                Resource: !Sub "arn:aws:s3:::${VideoBucketName}/${IngestPrefix}/*"
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub "arn:aws:s3:::${VideoBucketName}"
+                Condition:
+                  StringLike: { "s3:prefix": !Sub "${IngestPrefix}/*" }
+        - PolicyName: read-ra-cert-params
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource:
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ClientCertParam}"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ClientKeyParam}"
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [ !Ref InstanceRole ]
+
+  # No inbound rules — SSM Session Manager needs only outbound 443. No SSH port.
+  InstanceSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${ProjectName}-${Environment} on-prem demo EC2 (egress only)"
+      VpcId: !Ref Vpc
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Outbound for SSM + S3
+
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref LatestAmiId
+      SubnetId: !Ref Subnet
+      IamInstanceProfile: !Ref InstanceProfile
+      SecurityGroupIds: [ !GetAtt InstanceSg.GroupId ]
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-onprem-sim"
+        - Key: Project
+          Value: !Ref ProjectName
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euxo pipefail
+          exec > /var/log/cctv-setup.log 2>&1
+          REGION=${AWS::Region}
+          BUCKET=${VideoBucketName}
+          PREFIX=${IngestPrefix}
+          mkdir -p /opt/cctv/recordings /etc/cctv
+
+          # --- Sample "recordings" (tiny placeholders, valid filename grammar) ---
+          for f in CAM01_20260925_080000-083000.mp4 CAM02_20260925_093000-094500.mp4 CAM07_20260925_120000.mkv; do
+            head -c 262144 /dev/urandom > "/opt/cctv/recordings/$f"
+          done
+
+          # --- Fetch RA client cert/key from SSM (SecureString) for mechanism #2 ---
+          aws ssm get-parameter --name "${ClientCertParam}" --region "$REGION" --query Parameter.Value --output text > /etc/cctv/client.crt || true
+          aws ssm get-parameter --name "${ClientKeyParam}" --with-decryption --region "$REGION" --query Parameter.Value --output text > /etc/cctv/client.key || true
+          chmod 600 /etc/cctv/client.key || true
+
+          # --- Install the IAM Roles Anywhere credential helper (v1.8.5, AL2023 x86_64) ---
+          curl -fsSL -o /usr/local/bin/aws_signing_helper \
+            "https://rolesanywhere.amazonaws.com/releases/1.8.5/X86_64/Linux/Amzn2023/aws_signing_helper" || true
+          chmod +x /usr/local/bin/aws_signing_helper || true
+
+          # --- Mechanism #1: EC2 instance profile (temp creds via IMDS) ---
+          cat > /opt/cctv/upload-via-instance-profile.sh <<EOS
+          #!/bin/bash
+          set -euo pipefail
+          echo "[instance-profile] credentials come from the EC2 role via IMDS (no keys, no cert)."
+          aws sts get-caller-identity --region $REGION
+          aws s3 sync /opt/cctv/recordings "s3://$BUCKET/$PREFIX/" --region $REGION
+          echo "[instance-profile] upload done."
+          EOS
+          chmod +x /opt/cctv/upload-via-instance-profile.sh
+
+          # --- Mechanism #2: IAM Roles Anywhere (cert -> temp creds) ---
+          cat > /opt/cctv/upload-via-rolesanywhere.sh <<EOS
+          #!/bin/bash
+          set -euo pipefail
+          echo "[roles-anywhere] credentials come from an X.509 cert exchanged for temp creds (on-prem-faithful)."
+          export AWS_SHARED_CREDENTIALS_FILE=/dev/null
+          creds=\$(/usr/local/bin/aws_signing_helper credential-process \
+            --certificate /etc/cctv/client.crt --private-key /etc/cctv/client.key \
+            --trust-anchor-arn ${RaTrustAnchorArn} --profile-arn ${RaProfileArn} --role-arn ${RaRoleArn})
+          export AWS_ACCESS_KEY_ID=\$(echo "\$creds" | python3 -c "import sys,json;print(json.load(sys.stdin)['AccessKeyId'])")
+          export AWS_SECRET_ACCESS_KEY=\$(echo "\$creds" | python3 -c "import sys,json;print(json.load(sys.stdin)['SecretAccessKey'])")
+          export AWS_SESSION_TOKEN=\$(echo "\$creds" | python3 -c "import sys,json;print(json.load(sys.stdin)['SessionToken'])")
+          aws sts get-caller-identity --region $REGION
+          aws s3 sync /opt/cctv/recordings "s3://$BUCKET/$PREFIX/" --region $REGION
+          echo "[roles-anywhere] upload done."
+          EOS
+          chmod +x /opt/cctv/upload-via-rolesanywhere.sh
+
+          touch /opt/cctv/READY
+
+Outputs:
+  InstanceId:
+    Description: EC2 instance id (connect via SSM Session Manager).
+    Value: !Ref Instance
+  ConnectCommand:
+    Description: Open a shell on the simulated server.
+    Value: !Sub "aws ssm start-session --target ${Instance} --region ${AWS::Region}"
